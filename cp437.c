@@ -13,8 +13,10 @@
 #include <locale.h>
 #include <unistd.h>
 #include <signal.h>
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__)
  #include <libutil.h>
+#elif defined (__OpenBSD__) || defined (__NetBSD__) || defined (__APPLE__)
+ #include <util.h>
 #else
  #include <pty.h>
 #endif
