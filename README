@@ -13,10 +13,11 @@ artwork.
 Building
 --------
 
-Just running "make" should build the cp437 binary.  You'll need iconv, which is
-provided by glibc on Linux but is provided by the libiconv port on FreeBSD.
-As yet I've not tested it on any operating systems other than those two, 
-although it is reputed to work on OS X - feedback is welcome.
+Just running "make" (or "gmake" on BSD systems) should build the cp437 binary.  
+You'll need iconv, which is provided by glibc on Linux but is provided by the 
+libiconv port on FreeBSD.  As yet I've not tested it on any operating systems
+other than those two, although it is reputed to work on OS X too - feedback is 
+welcome.
 
 You can move the binary wherever you like - I suggest $HOME/bin.
 
