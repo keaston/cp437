@@ -24,7 +24,12 @@ You can move the binary wherever you like - I suggest $HOME/bin.
 Usage
 -----
 
-Just run cp437 followed by the command and argument you want to run.  You'll
-need to have your LANG or LC_CTYPE environment variable set up to match the
-character set used by your terminal emulator.
+Just run cp437 followed by the command and argument you want to run:
+
+    cp437 BitchX irc.efnet.org
+
+You'll need to have your LANG or LC_CTYPE environment variable set up to match
+the character set used by your terminal emulator.  This is often set by
+default but on some operating systems you may need to do some additional setup
+(for FreeBSD, see http://www.freebsd.org/doc/handbook/using-localization.html)
 
