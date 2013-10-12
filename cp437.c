@@ -75,12 +75,17 @@ ssize_t copy_converted(int to_fd, int from_fd, struct conv *conv)
 	return nbytes;
 }
 
-/* A pipe and a signal handler to allow a signal to be handled by the main select() loop. */
-int sigwinch_pipe[2];
+/* A pipe and a signal handlers to allow some signals to be handled by the main select() loop. */
+int signal_pipe[2];
 
 void sigwinch(int sig)
 {
-	write(sigwinch_pipe[1], "W", 1);
+	write(signal_pipe[1], "W", 1);
+}
+
+void sigchld(int sig)
+{
+	write(signal_pipe[1], "C", 1);
 }
 
 int main(int argc, char *argv[])
@@ -152,13 +157,17 @@ int main(int argc, char *argv[])
 	cfmakeraw(&term);
 	tcsetattr(STDIN_FILENO, TCSANOW, &term);
 
-	/* Establish SIGWINCH handler and pipe */
-	pipe(sigwinch_pipe);
+	/* Establish signal handlers and pipe */
+	pipe(signal_pipe);
 
-	sa.sa_handler = &sigwinch;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
+
+	sa.sa_handler = &sigwinch;
 	sigaction(SIGWINCH, &sa, NULL);
+
+	sa.sa_handler = &sigchld;
+	sigaction(SIGCHLD, &sa, NULL);
 
 	/* Main loop - we stop on any error or EOF */
 	while (1) {
@@ -168,9 +177,9 @@ int main(int argc, char *argv[])
 		FD_ZERO(&readfds);
 		FD_SET(STDIN_FILENO, &readfds);
 		FD_SET(master, &readfds);
-		FD_SET(sigwinch_pipe[0], &readfds);
+		FD_SET(signal_pipe[0], &readfds);
 
-		if (select(sigwinch_pipe[0] + 1, &readfds, NULL, NULL, NULL) < 0) {
+		if (select(signal_pipe[0] + 1, &readfds, NULL, NULL, NULL) < 0) {
 			if (errno == EINTR)
 				continue;
 			else
@@ -189,12 +198,38 @@ int main(int argc, char *argv[])
 				break;
 		}
 
-		if (FD_ISSET(sigwinch_pipe[0], &readfds)) {
+		if (FD_ISSET(signal_pipe[0], &readfds)) {
 			char x;
+			pid_t waited;
 			
-			read(sigwinch_pipe[0], &x, 1);
-			ioctl(STDIN_FILENO, TIOCGWINSZ, &win);
-			ioctl(master, TIOCSWINSZ, &win);
+			read(signal_pipe[0], &x, 1);
+			switch (x) {
+				/* SIGWINCH: Our terminal has resized, so resize the pty */
+				case 'W':
+				ioctl(STDIN_FILENO, TIOCGWINSZ, &win);
+				ioctl(master, TIOCSWINSZ, &win);
+				break;
+
+				/* SIGCHLD: Check for our child process stopping */
+				case 'C':
+				do {
+					waited = waitpid(childpid, &status, WNOHANG | WUNTRACED);
+				} while (waited < 0 && errno == EINTR);
+			
+				if (waited > 0 && WIFSTOPPED(status)) {
+					/* Child has stopped, so we need to restore the original
+					   terminal settings and then stop ourselves too. */
+					tcsetattr(STDIN_FILENO, TCSANOW, &term_orig);
+					raise(SIGSTOP);
+					/* Once we've been restarted, restart our child process
+					   and put the terminal back into raw mode. */
+					kill(waited, SIGCONT);
+					tcsetattr(STDIN_FILENO, TCSANOW, &term);
+					ioctl(STDIN_FILENO, TIOCGWINSZ, &win);
+					ioctl(master, TIOCSWINSZ, &win);
+				}
+				break;
+			}
 		}
 	}
 	
