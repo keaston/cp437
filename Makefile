@@ -12,7 +12,7 @@ endif
 endif
 
 cp437: cp437.c
-	$(CC) $(CFLAGS) $(LIBS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
 
 clean:
 	rm -f cp437
