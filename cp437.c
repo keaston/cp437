@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
 {
 	int master;
 	int status;
+	int nfds;
 	pid_t childpid;
 	struct termios term;
 	struct termios term_orig;
@@ -169,6 +170,10 @@ int main(int argc, char *argv[])
 	sa.sa_handler = &sigchld;
 	sigaction(SIGCHLD, &sa, NULL);
 
+	if (signal_pipe[0] > master)
+		nfds = signal_pipe[0] + 1;
+	else
+		nfds = master + 1;
 	/* Main loop - we stop on any error or EOF */
 	while (1) {
 		ssize_t nbytes;
@@ -179,7 +184,7 @@ int main(int argc, char *argv[])
 		FD_SET(master, &readfds);
 		FD_SET(signal_pipe[0], &readfds);
 
-		if (select(signal_pipe[0] + 1, &readfds, NULL, NULL, NULL) < 0) {
+		if (select(nfds, &readfds, NULL, NULL, NULL) < 0) {
 			if (errno == EINTR)
 				continue;
 			else
