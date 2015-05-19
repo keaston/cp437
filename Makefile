@@ -2,11 +2,12 @@ CC=gcc
 CFLAGS=-Wall
 LIBS=-lutil
 
-ifeq ($(shell uname -s),FreeBSD)
+SYSTEM=$(shell uname -s)
+ifeq ($(SYSTEM),$(filter $(SYSTEM),FreeBSD OpenBSD))
 	CFLAGS+= -I/usr/local/include
 	LIBS+= -L/usr/local/lib -liconv
 else
-ifeq ($(shell uname -s),Darwin)
+ifeq ($(SYSTEM),Darwin)
 	LIBS+= -liconv
 endif
 endif
