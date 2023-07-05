@@ -9,6 +9,10 @@ ifeq ($(SYSTEM),$(filter $(SYSTEM),FreeBSD OpenBSD))
 else
 ifeq ($(SYSTEM),Darwin)
 	LIBS+= -liconv
+else
+ifeq ($(shell uname -o),Android)
+	LIBS+= -L/data/data/com.termux/files/usr/lib -liconv
+endif
 endif
 endif
 
